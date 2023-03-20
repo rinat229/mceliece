@@ -4,6 +4,7 @@ import logging
 import timeit
 
 log = logging.getLogger("ntrucipher")
+logging.basicConfig()
 
 
 class McElieceCipher:
@@ -22,6 +23,7 @@ class McElieceCipher:
         self.S = None
         self.S_inv = None
         self.Gp = None
+        self.Hp = None
         self.g_poly = None
         self.irr_poly = None
 
@@ -36,18 +38,26 @@ class McElieceCipher:
         self.S = GF2Matrix.from_list(random_inv_matrix(self.k))
         self.S_inv = self.S.inv()
         self.Gp = self.S * self.G * self.P
+        Hp_T, nullity = self.Gp.nullspace()
+        self.Hp = GF2Matrix(Hp_T.T()[:nullity])
+        print(self.Hp)
+        print(self.Gp * self.Hp.T())
 
     def encrypt(self, msg_arr):
         if len(msg_arr) != self.Gp.shape[0]:
-            raise Exception(f"Wrong message length. Should be {self.Gp.shape[0]} bits.")
+            
+            raise Exception(f"Wrong message length. Should be {self.Gp.shape[0]} bits but got {len(msg_arr)}")
         log.debug(f"msg: {msg_arr}")
         Cp = GF2Matrix.from_list(msg_arr) * GF2Matrix.from_list(self.Gp)
-        log.debug(f"C': {Cp}")
+        log.debug(f"      codeword: {Cp}")
         bits_to_flip = np.random.choice(len(Cp), size=self.t, replace=False)
-        log.debug(f"bits_to_flip: {bits_to_flip}")
+        error_codeword = np.zeros(self.Gp.shape[1], dtype=np.uint8)
+        for b in bits_to_flip:
+            error_codeword[b] = 1
+        log.debug(f"error codeword: {error_codeword}")
         for b in bits_to_flip:
             Cp[b] = Cp[b].flip()
-        log.debug(f"C': {Cp}")
+        log.debug(f"   ciphertext': {Cp}")
         return Cp
 
     def repair_errors(self, msg_arr, syndrome):

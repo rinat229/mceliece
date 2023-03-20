@@ -31,6 +31,7 @@ import logging
 import math
 
 log = logging.getLogger("mceliece")
+log.setLevel(logging.INFO)
 
 debug = False
 verbose = False
@@ -42,7 +43,7 @@ def generate(m, n, t, priv_key_file, pub_key_file):
     np.savez_compressed(priv_key_file, m=m, n=n, t=t, S=mceliece.S, S_inv=mceliece.S_inv, G=mceliece.G, H=mceliece.H,
                         P=mceliece.P, P_inv=mceliece.P_inv, g_poly=mceliece.g_poly, irr_poly=mceliece.irr_poly)
     log.info(f'Private key saved to {priv_key_file} file')
-    np.savez_compressed(pub_key_file, m=m, n=n, t=t, Gp=mceliece.Gp)
+    np.savez_compressed(pub_key_file, m=m, n=n, t=t, Gp=mceliece.Gp, Hp=mceliece.Hp)
     log.info(f'Public key saved to {pub_key_file} file')
 
 
@@ -53,7 +54,7 @@ def encrypt(pub_key_file, input_arr, block=False):
 
     if not block:
         if mceliece.Gp.shape[0] < len(input_arr):
-            raise Exception(f"Input is too large for current N. Should be {mceliece.Gp.shape[0]}")
+            raise Exception(f"Input is too large for current N. Should be {mceliece.Gp.shape[0]}, but got {len(input_arr)}")
         output = mceliece.encrypt(input_arr).to_numpy()
     else:
         input_arr = padding_encode(input_arr, mceliece.Gp.shape[0])
@@ -126,7 +127,7 @@ if __name__ == '__main__':
         if args['FILE'] is None or args['FILE'] == '-':
             input = sys.stdin.read() if poly_input else sys.stdin.buffer.read()
         else:
-            with open(args['FILE'], 'rb') as file:
+            with open(args['FILE'], 'r') as file:
                 input = file.read()
         log.info("---INPUT---")
         log.info(input)
@@ -134,8 +135,10 @@ if __name__ == '__main__':
         if poly_input:
             input_arr = np.array(eval(input))
         else:
-            input_arr = np.unpackbits(np.frombuffer(input, dtype=np.uint8))
-        input_arr = np.trim_zeros(input_arr, 'b')
+            input_arr = np.array([int(i) for i in input])
+            # input_arr = np.unpackbits(np.frombuffer(input, dtype=np.uint8))
+        print(input_arr)
+        # input_arr = np.trim_zeros(input_arr, 'b')
         log.info("POLYNOMIAL DEGREE: {}".format(max(0, len(input_arr) - 1)))
         log.debug("BINARY: {}".format(input_arr))
 

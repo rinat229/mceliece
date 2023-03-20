@@ -6,6 +6,7 @@ from sympy import Matrix
 import logging
 
 log = logging.getLogger("goppacodegenerator")
+log.setLevel(logging.CRITICAL)
 
 
 class GoppaCodeGenerator:
